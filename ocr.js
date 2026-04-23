@@ -693,8 +693,6 @@ export class ScreenshotOCRController {
    * @returns
    */
   _onTCCompleted(emitter, result) {
-    // this._overlay.setTranslation(result_json.translatedText, x, y);
-    log(`[Shotzy OCR] Translated text: ${result}`);
     try {
       let json = JSON.parse(result);
 
