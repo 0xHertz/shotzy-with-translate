@@ -56,7 +56,6 @@ export const TcIndicator = GObject.registerClass(
     }
 
     destroy() {
-      this._selection.disconnect(this._ownerChangedId);
       this._settings.disconnect(this._settingsChangedId);
     }
 
