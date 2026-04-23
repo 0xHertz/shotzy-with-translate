@@ -107,26 +107,27 @@ const OCRHighlightOverlay = GObject.registerClass(
         layout.set_width(this._selectionGeometry.width * Pango.SCALE);
         layout.set_wrap(Pango.WrapMode.WORD_CHAR);
 
-        // 先画背景
-        let text_x = this._selectionGeometry.x;
-        let text_y =
-          this._selectionGeometry.y + this._selectionGeometry.height + 8;
+        // 计算文本尺寸
         let [layoutWidth, layoutHeight] = layout.get_size();
         layoutWidth /= Pango.SCALE;
         layoutHeight /= Pango.SCALE;
 
+        // 区域与截图框一致
+        let text_x = this._selectionGeometry.x;
+        let text_y = this._selectionGeometry.y;
+        let box_width = this._selectionGeometry.width;
+        let box_height = this._selectionGeometry.height;
+
         cr.setSourceRGBA(0, 0, 0, 0.7); // 半透明黑底
-        cr.rectangle(
-          text_x,
-          text_y,
-          this._selectionGeometry.width,
-          layoutHeight + 8,
-        );
+        cr.rectangle(text_x, text_y, box_width, box_height);
         cr.fill();
+        // 让文本居中
+        let text_center_x = text_x + (box_width - layoutWidth) / 2;
+        let text_center_y = text_y + (box_height - layoutHeight) / 2;
 
         // 再画白字
         cr.setSourceRGBA(1, 1, 1, 1);
-        cr.moveTo(text_x + 4, text_y + 4);
+        cr.moveTo(text_center_x, text_center_y);
         PangoCairo.show_layout(cr, layout);
       }
 
