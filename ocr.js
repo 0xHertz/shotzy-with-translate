@@ -100,34 +100,53 @@ const OCRHighlightOverlay = GObject.registerClass(
         let layout = PangoCairo.create_layout(cr);
 
         layout.set_text(this._translationText, -1);
-        let desc = Pango.font_description_from_string("Noto Sans CJK SC 12");
-        layout.set_font_description(desc);
 
-        // 限制宽度为截图区域宽度
-        layout.set_width(this._selectionGeometry.width * Pango.SCALE);
-        layout.set_wrap(Pango.WrapMode.WORD_CHAR);
-
-        // 计算文本尺寸
-        let [layoutWidth, layoutHeight] = layout.get_size();
-        layoutWidth /= Pango.SCALE;
-        layoutHeight /= Pango.SCALE;
-
-        // 区域与截图框一致
-        let text_x = this._selectionGeometry.x;
-        let text_y = this._selectionGeometry.y;
+        // 区域参数
+        let box_x = this._selectionGeometry.x;
+        let box_y = this._selectionGeometry.y;
         let box_width = this._selectionGeometry.width;
         let box_height = this._selectionGeometry.height;
 
-        cr.setSourceRGBA(0, 0, 0, 0.7); // 半透明黑底
-        cr.rectangle(text_x, text_y, box_width, box_height);
-        cr.fill();
-        // 让文本居中
-        let text_center_x = text_x + (box_width - layoutWidth) / 2;
-        let text_center_y = text_y + (box_height - layoutHeight) / 2;
+        // 动态调整字体大小，直到内容高度能放下
+        let fontSize = 24;
+        const minFontSize = 10;
+        let layoutWidth, layoutHeight;
+        let desc;
+        do {
+          desc = Pango.font_description_from_string(
+            `Noto Sans CJK SC Bold ${fontSize}`,
+          );
+          layout.set_font_description(desc);
+          layout.set_width(box_width * Pango.SCALE);
+          layout.set_wrap(Pango.WrapMode.WORD_CHAR);
+          [layoutWidth, layoutHeight] = layout.get_size();
+          layoutWidth /= Pango.SCALE;
+          layoutHeight /= Pango.SCALE;
+          if (layoutHeight > box_height) fontSize -= 1;
+        } while (layoutHeight > box_height && fontSize >= minFontSize);
 
-        // 再画白字
+        // 再次设置字体，确保是最后一次的
+        desc = Pango.font_description_from_string(
+          `Noto Sans CJK SC Bold ${fontSize}`,
+        );
+        layout.set_font_description(desc);
+        layout.set_width(box_width * Pango.SCALE);
+        layout.set_wrap(Pango.WrapMode.WORD_CHAR);
+        [layoutWidth, layoutHeight] = layout.get_size();
+        layoutWidth /= Pango.SCALE;
+        layoutHeight /= Pango.SCALE;
+
+        // 背景
+        cr.setSourceRGBA(0, 0, 0, 0.7);
+        cr.rectangle(box_x, box_y, box_width, box_height);
+        cr.fill();
+
+        // 让内容左右尽量铺满（居中或顶端对齐都可以，这里用顶端对齐）
+        let text_x = box_x + (box_width - layoutWidth) / 2;
+        let text_y = box_y + (box_height - layoutHeight) / 2;
+
         cr.setSourceRGBA(1, 1, 1, 1);
-        cr.moveTo(text_center_x, text_center_y);
+        cr.moveTo(text_x, text_y);
         PangoCairo.show_layout(cr, layout);
       }
 
