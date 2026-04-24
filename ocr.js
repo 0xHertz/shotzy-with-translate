@@ -99,20 +99,24 @@ const OCRHighlightOverlay = GObject.registerClass(
         const cr = this.get_context();
         let layout = PangoCairo.create_layout(cr);
 
-        layout.set_text(this._translationText, -1);
-
         // 区域参数
         let box_x = this._selectionGeometry.x;
         let box_y = this._selectionGeometry.y;
         let box_width = this._selectionGeometry.width;
         let box_height = this._selectionGeometry.height;
 
-        // 动态调整字体大小，直到内容高度能放下
+        // 先用原始文本
+        let displayText = this._translationText;
+
+        // 动态调整字体大小
         let fontSize = 24;
         const minFontSize = 10;
         let layoutWidth, layoutHeight;
         let desc;
-        do {
+        let removedNewline = false;
+
+        while (true) {
+          layout.set_text(displayText, -1);
           desc = Pango.font_description_from_string(
             `Noto Sans CJK SC Bold ${fontSize}`,
           );
@@ -122,26 +126,31 @@ const OCRHighlightOverlay = GObject.registerClass(
           [layoutWidth, layoutHeight] = layout.get_size();
           layoutWidth /= Pango.SCALE;
           layoutHeight /= Pango.SCALE;
-          if (layoutHeight > box_height) fontSize -= 1;
-        } while (layoutHeight > box_height && fontSize >= minFontSize);
 
-        // 再次设置字体，确保是最后一次的
-        desc = Pango.font_description_from_string(
-          `Noto Sans CJK SC Bold ${fontSize}`,
-        );
-        layout.set_font_description(desc);
-        layout.set_width(box_width * Pango.SCALE);
-        layout.set_wrap(Pango.WrapMode.WORD_CHAR);
-        [layoutWidth, layoutHeight] = layout.get_size();
-        layoutWidth /= Pango.SCALE;
-        layoutHeight /= Pango.SCALE;
+          if (layoutHeight <= box_height) {
+            // 能放下，结束
+            break;
+          } else if (fontSize > minFontSize) {
+            // 字体还能缩小
+            fontSize -= 1;
+          } else if (!removedNewline && displayText.indexOf("\n") !== -1) {
+            // 字体到极限，且还没去掉换行
+            displayText = displayText.replace(/\n+/g, " ");
+            removedNewline = true;
+            // 字体可以适当放大一点再尝试
+            fontSize = 24;
+          } else {
+            // 已经最小字体且无换行可去，强制break
+            break;
+          }
+        }
 
         // 背景
         cr.setSourceRGBA(0, 0, 0, 0.7);
         cr.rectangle(box_x, box_y, box_width, box_height);
         cr.fill();
 
-        // 让内容左右尽量铺满（居中或顶端对齐都可以，这里用顶端对齐）
+        // 居中
         let text_x = box_x + (box_width - layoutWidth) / 2;
         let text_y = box_y + (box_height - layoutHeight) / 2;
 
