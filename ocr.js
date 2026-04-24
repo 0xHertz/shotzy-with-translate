@@ -96,7 +96,6 @@ const OCRHighlightOverlay = GObject.registerClass(
         cr.stroke();
       }
       if (this._translationText) {
-        const cr = this.get_context();
         let layout = PangoCairo.create_layout(cr);
 
         // 区域参数
@@ -204,6 +203,9 @@ export class ScreenshotOCRController {
 
   destroy() {
     this.reset();
+    if (this._tcIndicator) {
+      this._tcIndicator.disconnect(this._translateCompleted);
+    }
 
     if (this._settings && this._settingsChangedId) {
       this._settings.disconnect(this._settingsChangedId);
@@ -726,9 +728,8 @@ export class ScreenshotOCRController {
 
       // 检查 JSON 结构是否完整
       if (!json || !json[0] || !Array.isArray(json[0])) {
-        let errorMsg = _(
-          "Invalid translation result format. Please check your language settings.",
-        );
+        let errorMsg =
+          "Invalid translation result format. Please check your language settings.";
         throw new Error(errorMsg);
       }
 
@@ -855,7 +856,7 @@ export class ScreenshotOCRController {
         this._overlay.setTranslation(translatedText);
       }
 
-      if (this._settings.get_string("brief-mode")) return;
+      if (this._settings.get_boolean("brief-mode")) return;
     } catch (error) {
       log("Failed with error " + error + " @ " + error.lineNumber);
       log(error.stack);
