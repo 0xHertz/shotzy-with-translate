@@ -245,6 +245,14 @@ export class ScreenshotOCRController {
     this._rebuildHitboxes([], null);
     this._hideCopyMenu();
   }
+  hide() {
+    this._overlay?.hide();
+    this._hitboxLayer?.hide();
+  }
+  show() {
+    this._overlay?.show();
+    this._hitboxLayer?.show();
+  }
 
   ensureAttached(ui) {
     if (this._overlay && this._hitboxLayer) return;

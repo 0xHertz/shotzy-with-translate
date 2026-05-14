@@ -227,6 +227,13 @@ export default class ShotzyExtension extends Extension {
         },
       );
     }
+    ui._shotButton?.connect("notify::checked", () => {
+      this._syncActionButtons();
+    });
+
+    ui._screenButton?.connect("notify::checked", () => {
+      this._syncActionButtons();
+    });
   }
 
   _unhookScreenshotUI(ui) {
@@ -300,19 +307,25 @@ export default class ShotzyExtension extends Extension {
       this._settings?.get_boolean("show-google-lens-button") ?? true;
     const showQrButton = this._settings?.get_boolean("show-qr-button") ?? true;
 
+    // 当前是否为截图模式
+    const isScreenshotMode = ui._shotButton?.checked ?? false;
+
     if (this._lensButton) {
-      this._lensButton.visible = showLensButton;
-      this._lensButton.reactive = showLensButton;
-      this._lensButton.can_focus = showLensButton;
+      const visible = showLensButton && isScreenshotMode;
+      this._lensButton.visible = visible;
+      this._lensButton.reactive = visible;
+      this._lensButton.can_focus = visible;
     }
 
     if (this._qrButton) {
-      this._qrButton.visible = showQrButton;
-      this._qrButton.reactive = showQrButton;
-      this._qrButton.can_focus = showQrButton;
+      const visible = showQrButton && isScreenshotMode;
+      this._qrButton.visible = visible;
+      this._qrButton.reactive = visible;
+      this._qrButton.can_focus = visible;
     }
-
-    if (!showQrButton) this._restoreDefaultLayout(ui);
+    if (!isScreenshotMode) this._ocrController?.hide();
+    else this._ocrController?.show();
+    if (!showQrButton || !isScreenshotMode) this._restoreDefaultLayout(ui);
   }
 
   _ensureButtonsAttached(ui) {
